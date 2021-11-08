@@ -1,0 +1,338 @@
+ansible configuration management tool
+
+its works on push mechanism
+agentless \\ nothing to add in client mechanis
+
+ssh communication
+yaml language
+
+
+ansible \\ playbooks \\ push
+puppet  \\ manifests \\ pull
+chef \\ cookbooks \\ pull
+
+instalattion
+
+client
+
+agentless \\ ssh 
+
+
+ansible ping -m localhost
+ 
+ ping  \\\ 10.10.10.152
+ 
+ 
+ system related host file \\   etc/hosts
+  ansible relate host file \\ /etc/ansible/hosts
+  
+  myservers
+  
+  10.10.10.151
+  10.10.10.153
+   
+   
+   ssh key generation 
+   
+   ssh-keygen 
+   ssh-copy-id -i root@10.10.10.151
+   ssh-add
+   
+   for check ifconfig
+   
+   ansible 10.10.10.151 -m ping
+   
+   
+  adhoc commands
+   
+   
+   ansible 10.10.10.151 -m file -a  'path=/etc/fstab'
+   ansible 10.10.10.151 -m file -a 'path=etc/temp/hello state=directory mode=0700 owner=root'
+   
+   
+   playbooks
+   
+   target section
+   variable section
+   tasks section
+   
+   playbook name ends with .yml extension
+   
+  #vi create.yml
+   
+   ---
+    - hosts: 10.10.10.151                 # target section
+	  user: root
+	- var:                                # variable section
+	   welcome-text: 'content what we want to add in file'   
+   
+     tasks:
+	 - name: copy_file
+       copy:
+	   dest: /etc/temp/file.txt
+	   content:{{"welcome-text"}}
+	   
+	   
+Runnig the playbook 
+
+	ansible-playbook create.yml
+
+ex : 2 , 
+#vi service-httpd.yml
+    
+         #install a httpd package on prod  groups
+		#copy a file index.html
+		#restart service httpd
+
+---
+ - hosts: 10.10.10.151                                  # prod is group , we can define many groups in host file , in separate grp we can add many ip's [prod] 10.10.10.151  , 10.10.10.153
+   user: root
+   tasks:
+    - name: install-httpd
+      action: wget name: http state: installed   # action : we can install nd  uninstall  packages
+	- name: copy_index.html
+	  copy: src= files/index.html
+            dest= var/www/html/index.html
+    - name: start httppd
+	   service:
+	  name: httpd
+	  state= restarted
+
+
+test the playbokks
+
+
+ansible-playbook playbookname --syntax-check \\ gives the errors
+ansible-playbook playbookname --check  \\ dry run 	  
+		
+		
+		
+		TAGs
+		
+ ---
+  - hosts: 10.10.10.151                          
+    user: root
+    tasks:
+    - name: install-httpd
+      action: wget name: http state: installed   # action : we can install nd  uninstall  packages
+	  tags: service
+	- name: copy_index.html
+	  copy: src= files/index.html
+            dest= var/www/html/index.html
+	  tags: copy
+    - name: start httpd
+	   service:
+	  name: httpd
+	  state= restarted
+      tags: restart
+	  
+ #ansible-playbook service-httpd.yml --tags copy
+ 
+ 
+ handlers
+ 
+ handlers is nothing but handles a task , one after another .If first tasks fails , then stops the second tasks 
+ 
+ ---
+  - hosts: 10.10.10.151                          
+    user: root
+    tasks:
+    - name: install-httpd
+      action: wget name: http state: installed   # action : we can install nd  uninstall  packages
+	  
+	- name: copy_index.html
+	  copy: src= files/index.html
+            dest= var/www/html/index.html
+	  notify:
+	          resarted httpd
+	- name: copy_config files/index
+	  copy: src= files/index.html
+            dest= var/www/html/index.html
+	notify:
+	         resarted httpd
+     handlers:
+    - name: resarted httpd
+      service: name=httpd status resarted
+	  
+	   
+	   
+	   Roles
+	   
+	  place the group of playbooks in one file  , reduce code complexity nd increrase  the code code resusebility
+	  
+	  
+	  ansible-galaxy init lamp
+	  
+	  oot@sai-oVirt-Node:/home/sai# tree lamp/
+lamp/
+├── defaults
+│   └── main.yml
+├── files
+├── handlers
+│   └── main.yml
+├── meta
+│   └── main.yml
+├── README.md
+├── tasks
+│   └── main.yml
+├── templates
+├── tests
+│   ├── inventory
+│   └── test.yml
+└── vars
+    └── main.yml
+
+8 directories, 8 files
+
+ oot@sai-oVirt-Node:/home/sai# tree lamp/
+  cd tasks
+   main.yml
+   
+    root@sai-oVirt-Node:/home/sai/lamp/tasks#  vi httpd.yml
+	
+	---
+	 - name: install {apache}httpd
+	   yum:
+	     name: httpd
+		 state: latest
+	 - name: start apache
+	   service:
+	     name: httpd
+		 state: start
+     - name: copy index.html file
+	   copy:
+	     source: index.html
+		 dest: /var/www/html/index
+	 - name: restart apache_service
+	   service: 
+	     name: httpd
+         state : restart .
+
+
+:wq
+
+
+    root@sai-oVirt-Node:/home/sai/lamp/tasks#  vi php.yml
+	
+	---
+	 - name: install php
+	   yum:
+	     name: php
+		 state: latest
+	 - name: start apache
+	   service:
+	     name: php
+		 state: start
+     - name: copy php.info
+	   copy:
+	     source: php.info
+		 dest: /var/www/html/index
+	 - name: restart apache_service
+	   service: 
+	     name: php
+         state : restart 
+	   notify: restart apache
+	   
+	   
+:wq
+
+    root@sai-oVirt-Node:/home/sai/lamp/tasks#  vi mysqlphp.yml
+
+
+--
+ - name: install_mysql
+   yum:
+     name: mysql
+     state: latest 
+ - name: install mysql server
+   yum: 
+     name: mysqldb-server
+     state: latest 
+ - name: install phpmysql
+   yum:
+     name: phpmysql
+     state: latest
+ - name: start mysqldb
+   service:
+     name: mysqldb
+     state: started\
+	 
+:wq
+
+
+  root@sai-oVirt-Node:/home/sai/lamp/tasks#  vi main.yml
+
+
+
+---
+# tasks file for lamp
+- include_tasks: httpd.yml
+- include_tasks: php.yml
+- include_tasks: mysqlphp.yml
+
+oot@sai-oVirt-Node:/home/sai/lamp/tasks# tree
+.
+├── httpd.yaml
+├── main.yml
+├── mysql.yml
+└── php.yml
+
+
+
+in files folder add files for copying
+in handlers folder add notify name
+
+root@sai-oVirt-Node:/home/sai/lamp/files# ls
+index.html  php.info
+
+
+root@sai-oVirt-Node:/home/sai/lamp/handlers# nano main.yml 
+root@sai-oVirt-Node:/home/sai/lamp/handlers# 
+
+---
+# handlers file for lamp
+- name: restart apache server
+  service :
+    name: httpd
+	state: restarted
+
+
+root@sai-oVirt-Node:/home/sai/lamp# tree
+.
+├── defaults
+│   └── main.yml
+├── files
+│   ├── index.html
+│   └── php.info
+├── handlers
+│   └── main.yml
+├── meta
+│   └── main.yml
+├── README.md
+├── tasks
+│   ├── httpd.yaml
+│   ├── main.yml
+│   ├── mysql.yml
+│   └── php.yml
+├── templates
+├── tests
+│   ├── inventory
+│   └── test.yml
+└── vars
+    └── main.yml
+
+8 directories, 13 files
+
+
+
+	     
+
+
+	  
+ 
+
+
+	  
+		
+		
+		

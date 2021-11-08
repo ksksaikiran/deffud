@@ -1,0 +1,151 @@
+
+
+
+
+ kubectl get nodes
+ kubectl get -o nodes
+ kubectl get pods
+ kubectl get pods -o wide
+ kubectl apply -f deployment.yaml
+ kubectl get service
+ kubectl get deployment
+ 
+ =============================================
+ Running Operations directly on the YAML file
+ =============================================
+ SYNTAX: kubectl [OPERATION] -f [FILE-NAME.yaml]
+ kubectl get -f [FILE-NAME.yaml]
+ kubectl describe -f [FILE-NAME.yaml]
+ kubectl edit -f [FILE-NAME.yaml]
+ kubectl delete -f [FILE-NAME.yaml]
+ kubectl create -f [FILE-NAME.yaml]
+ 
+ ==========================
+ Display Replicaset
+ ==========================
+ 
+ kubectl get rs
+ kubectl get rs <rs name> -o wide
+ kubectl get rs <rs name> -o yaml
+ kubectl get rs -l <labelname ex: dep>
+ kubectl describe rs <RS-name>
+ kubectl scale <RS-name> --replicas=[COUNT]
+ kubectl edit  rs deployment1-588b99f489
+
+ 
+ ============================
+ Displaying Pods
+ ============================
+ 
+ kubectl get pods
+ kubectl get pods -o wide
+ kubectl get pods -l <label name ex: dep>
+ kubectl get pods --show-labels
+ 
+ ========================================
+ kubectl get deployments
+ kubectl delete deployment deployment1
+ 
+ ========================================
+ CONFIGMAPS
+ ========================================
+
+ kubectl create configmap myconfig1 --dry-run=client -o yaml > avengers.yaml
+ vim avengers.yaml
+ kubectl apply -f avengers.yaml
+ kubectl describe configmaps myconfig1
+ kubectl run avengers --image=nginx --dry-run=client -o yaml > avenge.yaml
+ vim avenge.yaml
+ kubectl apply -f avenge.yaml
+ kubectl get pods
+ 
+
+
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: avengers
+spec:
+  containers:
+  - image: nginx
+    name: avengers
+    envFrom:
+    - configMapRef:
+        name: myconfig1
+
+
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mycont
+spec:
+  containers:
+  - image: nginx:1.8
+    name: mycontainer
+    envFrom:
+    - configMapRef:
+      name: myconfig2
+
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: testing-conf
+spec:
+  containers:
+  - name: test-cont
+    image: nginx:1.8
+    ports:
+    - containerPort: 80
+    envFrom:
+    - configMapRef:
+        name: conf-testing
+
+====================================================================
+               DEPLOYMENT ROLLOUTS
+====================================================================
+
+# List deployments:
+kubectl get deploy
+
+# Update a deployment with a manifest file:
+kubectl apply -f web.yaml
+
+# Scale a deployment “web” to 3 replicas:
+kubectl scale deploy/web --replicas=3
+
+# Watch update status for deployment “web”:
+kubectl rollout status deploy/web
+
+# Pause deployment on “web”:
+kubectl rollout pause deploy/web
+
+# Resume deployment on “web”:
+kubectl rollout resume deploy/web
+
+# View rollout history on “web”:
+kubectl rollout history deploy/web
+
+# Undo most recent update on “web”:
+kubectl rollout undo deploy/web
+
+# Rollback to specific revision on “web”:
+kubectl rollout undo deploy/web --to-revision=1
+
+
+The most important option to configure rolling updates is the update strategy. In your Deployment manifest, spec.strategy.type has two possible values:
+
+RollingUpdate: New pods are added gradually, and old pods are terminated gradually
+Recreate: All old pods are terminated before any new pods are added
+In most cases, RollingUpdate is the preferable update strategy for Deployments. Recreate can be useful if you are running a pod as a singleton, and having a duplicate pod for even a few seconds is not acceptable.
+
+When using the RollingUpdate strategy, there are two more options that let you fine-tune the update process:
+
+maxSurge: The number of pods that can be created above the desired amount of pods during an update
+maxUnavailable: The number of pods that can be unavailable during the update process
+ maxSurge is the maximum number of new pods that will be created at a time, and maxUnavailable is the maximum number of old pods that will be deleted at a time.
+
+NOTE: ****Both maxSurge and maxUnavailable can be specified as either an integer (e.g. 2) or a percentage (e.g. 50%), and they cannot both be zero.****
+ 

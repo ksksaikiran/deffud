@@ -1,0 +1,217 @@
+
+========================================================
+					CONFIGMAPS
+========================================================
+
+The ConfigMap API resource holds key-value pairs of configuration data that can be consumed in pods or used to store configuration data for system components such as controllers. 
+ConfigMap is similar to Secrets, but designed to more conveniently support working with strings that do not contain sensitive information.
+
+ kubectl create configmap myconfig1 --dry-run=client -o yaml > avengers.yaml
+ vim avengers.yaml
+ kubectl apply -f avengers.yaml
+ kubectl describe configmaps myconfig1
+ kubectl run avengers --image=nginx --dry-run=client -o yaml > avenge.yaml
+ vim avenge.yaml
+ kubectl apply -f avenge.yaml
+ kubectl get pods
+ 
+============================================================
+vim configmap.yaml
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: conftesty
+data:
+  myname: saikiran
+  myarea: hayathnagar
+  organistaion: |
+    employees: ctel
+    employee1: ashish
+    employee2: saiteja
+    employee3: saikiran
+  managers: |
+    manager1: ashish
+    manager2: phani
+    manager3: manohar
+
+
+
+vim configpodtest.yaml
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: configmap-demo-pod
+spec:
+  containers:
+    - name: demo
+      image: alpine
+      command: ["sleep", "3600"]
+      env:
+             # Define the environment variable
+        - name: myarea
+          valueFrom:
+            configMapKeyRef:
+              name: conftesty           # The ConfigMap this value comes from.
+              key: myarea     # The key to fetch.
+        - name: myname
+          valueFrom:
+            configMapKeyRef:
+              name: conftesty
+              key: myname
+      volumeMounts:
+      - name: config
+        mountPath: "/config"
+        readOnly: true
+  volumes:
+     - name: config
+       configMap:
+        # Provide the name of the ConfigMap you want to mount.
+         name: conftesty
+      # An array of keys from the ConfigMap to create as files
+         items:
+         - key: "organistaion"
+           path: "organistaion"
+         - key: "managers"
+           path: "managers"
+
+------------------------------------------------------------------------
+kubectl create configmap myconfig1 --dry-run=client -o yaml > avengers.yaml
+ vim avengers.yaml
+ 
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  creationTimestamp: null
+  name: myconfig1
+data:
+  vision: "wanda"
+  sai: "Kiran"
+ kubectl apply -f avengers.yaml
+ 
+ kubectl run avengers --image=nginx --dry-run=client -o yaml > avenge.yaml
+ vim avenge.yaml
+ 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: avengers
+spec:
+  containers:
+  - image: nginx
+    name: avengers
+    envFrom:
+    - configMapRef:
+        name: myconfig1
+
+
+ kubectl apply -f avenge.yaml
+ kubectl get pods
+ kubectl exec avengers -- env | grep -i sai
+
+------------------------------------
+ kubectl create cm myconfig2 --dry-run=client -o yaml > avengers2.yaml
+ vim avengers2.yaml
+ 
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: myconfig2
+data:
+  myname: "Saikiran"
+  myarea: "Hayathnagar"
+
+ kubectl apply -f avengers2.yaml
+
+ kubectl run mycont --image=naginx:1.8 --dry-run=client -o yaml > avenge2.yaml
+ vim avenge2.yaml
+ 
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mycont
+spec:
+  containers:
+  - image: nginx:1.8
+    name: mycontainer
+    envFrom:
+    - configMapRef:
+      name: myconfig2
+
+ kubectl apply -f avenge2.yaml
+ kubectl get pods
+ kubectl get pods -o wide
+  kubectl exec mycont -- env | grep -i myarea
+ kubectl exec mycont -- env | grep -i myname
+-----------------------------------------------
+
+ vim Conf.yaml
+ 
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: conf-testing
+data:
+  organisation: "ctel"
+  Area: "Madhapur"
+
+kubectl apply -f testing.yaml
+
+vim testing.yaml
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: testing-conf
+spec:
+  containers:
+  - name: test-cont
+    image: nginx:1.8
+    ports:
+    - containerPort: 80
+    envFrom:
+    - configMapRef:
+        name: conf-testing
+		
+kubectl apply -f testing.yaml
+ kubectl get pods
+ kubectl get pods -o wide
+  kubectl exec testing-conf -- env | grep -i organisation
+ kubectl exec testing-conf -- env | grep -i Area
+ 
+ -----------------------------------------------------------
+ vim mongomap.yaml
+ kubectl apply -f mongomap.yaml
+ 
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mongo-map
+data:
+  database: mongodb
+  database_uri: mongodb://localhost:27017
+  MONGO_INITDB_ROOT_USERNAME: root
+  MONGO_INITDB_ROOT_PASSWORD: Ctel@123
+
+vim mongomappod.yaml
+kubectl apply -f mongomappod.yaml
+
+apiVersion: v1
+kind: Pod
+metadata:  
+  name: mongomappod
+spec:
+  containers:
+  - image: mongo
+    name: mongopod
+    ports:
+    - containerPort: 27017
+    envFrom:
+    - configMapRef:
+        name: mongo-map
+
+kubectl get pods
+kubectl exec -it <po name> sh
+#mongo   or # mongo -u root -p
+> show dbs;

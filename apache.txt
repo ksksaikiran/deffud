@@ -1,0 +1,182 @@
+Apache is a process-based, modular, open-source web server application designed to establish a new thread for each connection occurring simultaneously.
+
+
+sudo apt update
+sudo apt install apache2
+apache2 -version
+
+List the ufw application profiles by typing:
+
+sudo ufw app list
+
+sudo ufw allow 'Apache'
+sudo ufw status
+ ========================================
+ o\p
+
+Output
+Status: active
+
+To                         Action      From
+--                         ------      ----
+OpenSSH                    ALLOW       Anywhere                  
+Apache                     ALLOW       Anywhere                
+OpenSSH (v6)               ALLOW       Anywhere (v6)             
+Apache (v6)                ALLOW       Anywhere (v6)
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ Checking your Web Server
+ 
+ sudo systemctl status apache2
+  
+ hostname -I
+ 
+ http://your_server_ip
+ 
+ Managing the Apache Process
+ sudo systemctl stop apache2
+ sudo systemctl start apache2
+ sudo systemctl restart apache2
+ sudo systemctl reload apache2
+ sudo systemctl disable apache2
+ sudo systemctl enable apache2
+ 
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ 
+ 
+  Setting Up Virtual Hosts
+  
+  sudo mkdir /var/www/ctelinfos.com
+  sudo chown -R $USER:$USER /var/www/ctelinfos.com
+  sudo chmod -R 755 /var/www/ctelinfos.com
+  sudo nano /var/www/ctelinfos.com/index.html
+  
+  ================================================
+  <html>
+    <head>
+        <title>Welcome to ctelinfos.com!</title>
+    </head>
+    <body>
+        <h1>Success!  The ctelinfos.com virtual host is working!</h1>
+    </body>
+</html>
+
+========================
+
+sudo nano /etc/apache2/sites-available/ctelinfos.com.conf
+
+<VirtualHost *:80>
+    ServerAdmin webmaster@localhost
+    ServerName ctelinfos.com
+    ServerAlias www.ctelinfos.com
+    DocumentRoot /var/www/ctelinfos.com
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+
+
+enable the file with the a2ensite tool: 
+
+sudo a2ensite ctelinfos.com.conf
+
+
+let’s test for configuration errors:
+
+    sudo apache2ctl configtest
+
+Output
+Syntax OK
+
+
+Restart Apache to implement your changes:
+
+    sudo systemctl restart apache2
+Apache should now be serving your domain name. You can test this by navigating to http://ctelinfos.com
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Server Configuration
+
+###/etc/apache2: The Apache configuration directory. All of the Apache configuration files reside here.
+
+###/etc/apache2/apache2.conf: The main Apache configuration file. This can be modified to make changes to the Apache global configuration. This file is responsible for loading many of the other files in the configuration directory.
+
+###/etc/apache2/ports.conf: This file specifies the ports that Apache will listen on. By default, Apache listens on port 80 and additionally listens on port 443 when a module providing SSL capabilities is enabled.
+
+###/etc/apache2/sites-available/: The directory where per-site virtual hosts can be stored. Apache will not use the configuration files found in this directory unless they are linked to the sites-enabled directory. Typically, all server block configuration is done in this directory, and then enabled by linking to the other directory with the a2ensite command.
+
+###/etc/apache2/sites-enabled/: The directory where enabled per-site virtual hosts are stored. Typically, these are created by linking to configuration files found in the sites-available directory with the a2ensite. Apache reads the configuration files and links found in this directory when it starts or reloads to compile a complete configuration.
+ 
+ ##/etc/apache2/conf-available/, /etc/apache2/conf-enabled/: These directories have the same relationship as the sites-available and sites-enabled directories, but are used to store configuration fragments that do not belong in a virtual host. Files in the conf-available directory can be enabled with the a2enconf command and disabled with the a2disconf command.
+
+#######/etc/apache2/mods-available/, /etc/apache2/mods-enabled/: These directories contain the available and enabled modules, respectively. Files ending in .load contain fragments to load specific modules, while files ending in .conf contain the configuration for those modules. Modules can be enabled and disabled using the a2enmod and a2dismod command.
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+Steps to install / Enable SSL certificate on Ubuntu using Apache
+
+sudo apt update
+sudo ufw allow "Apache Full"
+
+
+Step 1 — Enabling mod_ssl
+
+sudo a2enmod ssl
+
+sudo systemctl restart apache2
+
+Step 2  ------ Creating the SSL Certificate
+ sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/apache-selfsigned.key -out /etc/ssl/certs/apache-selfsigned.crt
+ 
+ You need to enter either the hostname you’ll use to access the server by, or the public IP of the server. It’s important that this field matches whatever you’ll put into your browser’s address bar to access the site, as a mismatch will cause more security errors.
+ 
+ Country Name (2 letter code) [XX]: ind
+State or Province Name (full name) []:ts
+Locality Name (eg, city) [Default City]: hyd
+Organization Name (eg, company) [Default Company Ltd]:Example ctel
+Organizational Unit Name (eg, section) []:devops Dept
+Common Name (eg, your name or your server's hostname) []:ctelinfos
+
+
+Step 3 Configuring Apache to Use SSL
+
+sudo nano /etc/apache2/sites-available/ctelinfo.com.conf
+
+<VirtualHost *:443>
+   ServerName ctelinfos.com
+   DocumentRoot /var/www/ctelinfos
+
+   SSLEngine on
+   SSLCertificateFile /etc/ssl/certs/apache-selfsigned.crt
+   SSLCertificateKeyFile /etc/ssl/private/apache-selfsigned.key
+</VirtualHost>
+
+Now let’s create our DocumentRoot and put an HTML file in it just for testing purposes:
+
+    sudo mkdir /var/www/ctelinfos.com/index
+
+ 
+
+Open a new index.html file with your text editor:
+
+    sudo nano /var/www/ctelinfos/index.html
+sudo a2ensite ctelinfos.conf
+
+sudo apache2ctl configtest
+sudo systemctl reload apache2
+ sudo ufw allow "Apache Full"
+ 
+ step 4 =-------Redirecting HTTP to HTTPS
+ 
+ sudo nano /etc/apache2/sites-available/ctelinfos.com.conf
+ <VirtualHost *:80>
+    ServerName ctelinfos.com
+    Redirect / https://ctelinfos.com
+</VirtualHost>
+
+sudo apachectl configtest
+sudo systemctl reload apache2
+
+
+
+
